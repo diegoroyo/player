@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:app/exceptions/unsupported_type_exception.dart';
 import 'package:app/models/album.dart';
 import 'package:app/models/artist.dart';
+import 'package:app/providers/cache_provider.dart';
 import 'package:app/utils/crypto.dart';
 import 'package:app/utils/preferences.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
@@ -9,6 +12,7 @@ import 'package:faker/faker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
 
 class Song {
   late Album album;
@@ -168,5 +172,51 @@ class Song {
     }
 
     return songs;
+  }
+}
+
+class DownloadableSongList with ChangeNotifier {
+  late CacheProvider _cache;
+
+  final List<Song> _songs;
+  get songs => _songs;
+
+  int _numDownloaded = 0;
+  bool _isDownloading = false;
+  bool _hasFinishedLoading = false;
+
+  int get numDownloaded => _numDownloaded;
+  bool get allDownloaded => _numDownloaded == _songs.length;
+  bool get isDownloading => _isDownloading;
+  bool get hasFinishedLoading => _hasFinishedLoading;
+
+  DownloadableSongList(BuildContext context, this._songs)
+      : _cache = context.read() {
+    _checkDownloadedSongs();
+  }
+
+  void requestDownload() async {
+    if (!_isDownloading && _hasFinishedLoading) {
+      _isDownloading = true;
+      for (Song song in _songs) {
+        if (!await _cache.has(song: song)) {
+          await _cache.cache(song: song).then((e) {
+            _numDownloaded++;
+            notifyListeners();
+          });
+        }
+      }
+      _isDownloading = false;
+    }
+  }
+
+  void _checkDownloadedSongs() async {
+    for (Song song in _songs) {
+      if (await _cache.has(song: song)) {
+        _numDownloaded++;
+      }
+    }
+    _hasFinishedLoading = true;
+    notifyListeners();
   }
 }

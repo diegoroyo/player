@@ -1,7 +1,6 @@
 import 'package:app/constants/dimensions.dart';
 import 'package:app/models/song.dart';
 import 'package:app/providers/audio_provider.dart';
-import 'package:app/providers/cache_provider.dart';
 import 'package:app/router.dart';
 import 'package:app/ui/screens/queue.dart';
 import 'package:app/ui/widgets/full_width_primary_icon_button.dart';
@@ -33,24 +32,16 @@ class SongListButtons extends StatefulWidget {
 }
 
 class _SongListButtonsState extends State<SongListButtons> {
-  late CacheProvider cache;
-  bool _downloading = false;
-  int _numDownloadedSongs = 0;
+  late DownloadableSongList cachedSongs;
 
   @override
   void initState() {
     super.initState();
-    cache = context.read();
-    _checkDownloadedSongs();
-  }
 
-  void _checkDownloadedSongs() async {
-    for (Song song in widget.songs) {
-      if (await cache.has(song: song)) {
-        _numDownloadedSongs++;
-      }
-    }
-    setState(() {});
+    cachedSongs = DownloadableSongList(context, widget.songs)
+      ..addListener(() {
+        setState(() {});
+      });
   }
 
   @override
@@ -67,7 +58,8 @@ class _SongListButtonsState extends State<SongListButtons> {
                 key: SongListButtons.playAllButtonKey,
                 icon: CupertinoIcons.play_fill,
                 label: 'Play All',
-                onPressed: () async => await audio.replaceQueue(widget.songs),
+                onPressed: () async =>
+                    await audio.replaceQueue(cachedSongs.songs),
               ),
               const SizedBox(width: 12),
               FullWidthPrimaryIconButton(
@@ -75,7 +67,7 @@ class _SongListButtonsState extends State<SongListButtons> {
                   icon: CupertinoIcons.shuffle,
                   label: 'Shuffle All',
                   onPressed: () async {
-                    await audio.replaceQueue(widget.songs, shuffle: true);
+                    await audio.replaceQueue(cachedSongs.songs, shuffle: true);
                     Navigator.of(context, rootNavigator: true)
                         .pushNamed(QueueScreen.routeName);
                     await AppRouter().openNowPlayingScreen(context);
@@ -87,26 +79,16 @@ class _SongListButtonsState extends State<SongListButtons> {
             children: <Widget>[
               FullWidthPrimaryIconButton(
                 key: SongListButtons.downloadAllButtonKey,
-                icon: _numDownloadedSongs == widget.songs.length
+                icon: cachedSongs.allDownloaded
                     ? CupertinoIcons.checkmark_alt_circle_fill
                     : CupertinoIcons.cloud_download_fill,
-                label: _numDownloadedSongs == widget.songs.length
-                    ? 'All songs available offline'
-                    : 'Download All'
-                        '${_downloading ? " (" + _numDownloadedSongs.toString() + " / " + widget.songs.length.toString() + ")" : ""}',
-                onPressed: () async {
-                  if (!_downloading) {
-                    setState(() => _downloading = true);
-                    for (Song song in widget.songs) {
-                      if (!await cache.has(song: song)) {
-                        await cache
-                            .cache(song: song)
-                            .then((e) => setState(() => _numDownloadedSongs++));
-                      }
-                    }
-                    setState(() => _downloading = false);
-                  }
-                },
+                label: cachedSongs.hasFinishedLoading
+                    ? (cachedSongs.allDownloaded
+                        ? 'All songs available offline'
+                        : 'Download All'
+                            '${cachedSongs.isDownloading ? " (" + cachedSongs.numDownloaded.toString() + " / " + cachedSongs.songs.length.toString() + ")" : ""}')
+                    : 'Loading...',
+                onPressed: cachedSongs.requestDownload,
               ),
             ],
           ),

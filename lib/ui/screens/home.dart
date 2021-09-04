@@ -42,35 +42,25 @@ class _HomeScreenState extends State<HomeScreen> {
   ConnectivityResult? connectivity;
   late StreamSubscription connectivityStream;
 
-  BluetoothState bluetoothState = BluetoothState.UNKNOWN;
+  late DownloadableSongList cachedSongs;
+  BluetoothState bluetoothState = BluetoothState.STATE_OFF;
 
   @override
   void initState() {
     super.initState();
 
-    Future.doWhile(() async {
-      // Wait if adapter not enabled
-      if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
-        return false;
-      }
-      await Future.delayed(Duration(milliseconds: 0xDD));
-      return true;
-    }).then((_) async {
-      FlutterBluetoothSerial.instance
-          .onStateChanged()
-          .listen((BluetoothState state) {
-        setState(() {
-          bluetoothState = state;
-        });
+    cachedSongs =
+        DownloadableSongList(context, context.read<SongProvider>().songs)
+          ..addListener(() {
+            setState(() {});
+          });
+
+    FlutterBluetoothSerial.instance
+        .onStateChanged()
+        .listen((BluetoothState state) {
+      setState(() {
+        bluetoothState = state;
       });
-
-      bluetoothState = await FlutterBluetoothSerial.instance.isEnabled == true
-          ? BluetoothState.STATE_ON
-          : BluetoothState.STATE_OFF;
-
-      if (await FlutterBluetoothSerial.instance.isEnabled != true) {
-        FlutterBluetoothSerial.instance.requestEnable();
-      }
     });
 
     connectivityStream = Connectivity()
@@ -94,6 +84,17 @@ class _HomeScreenState extends State<HomeScreen> {
     connectivity = await Connectivity().checkConnectivity();
     if (connectivity == ConnectivityResult.none) {
       setState(() => initiallyOffline = true);
+    }
+
+    BluetoothState newBluetoothState =
+        await FlutterBluetoothSerial.instance.isEnabled == true
+            ? BluetoothState.STATE_ON
+            : BluetoothState.STATE_OFF;
+
+    setState(() => bluetoothState = newBluetoothState);
+
+    if (await FlutterBluetoothSerial.instance.isEnabled != true) {
+      FlutterBluetoothSerial.instance.requestEnable();
     }
     loaded = true;
   }
@@ -153,32 +154,51 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimensions.horizontalPadding,
             ),
-            child: Row(children: [
-              FullWidthPrimaryIconButton(
-                  icon: bluetoothState == BluetoothState.STATE_ON
-                      ? Icons.bluetooth
-                      : Icons.bluetooth_disabled,
-                  label: bluetoothState == BluetoothState.STATE_ON
-                      ? 'Bluetooth ON'
-                      : 'Bluetooth OFF',
-                  onPressed: () {
-                    if (bluetoothState == BluetoothState.STATE_ON) {
-                      FlutterBluetoothSerial.instance.requestDisable();
-                    } else if (bluetoothState == BluetoothState.STATE_OFF) {
-                      FlutterBluetoothSerial.instance.requestEnable();
-                    }
-                  }),
-              const SizedBox(width: 12),
-              FullWidthPrimaryIconButton(
-                  icon: connectivity == ConnectivityResult.none
-                      ? Icons.signal_wifi_off
-                      : Icons.signal_wifi_4_bar,
-                  label: connectivity == ConnectivityResult.none
-                      ? 'Offline'
-                      : (initiallyOffline ? 'Tap to reload' : 'Online'),
-                  onPressed: () => Navigator.of(context)
-                      .pushNamedAndRemoveUntil(
-                          InitialScreen.routeName, (route) => false))
+            child: Column(children: [
+              Row(children: [
+                FullWidthPrimaryIconButton(
+                    icon: bluetoothState == BluetoothState.STATE_ON
+                        ? Icons.bluetooth
+                        : Icons.bluetooth_disabled,
+                    label: bluetoothState == BluetoothState.STATE_ON
+                        ? 'Bluetooth ON'
+                        : 'Bluetooth OFF',
+                    onPressed: () {
+                      if (bluetoothState == BluetoothState.STATE_ON) {
+                        FlutterBluetoothSerial.instance.requestDisable();
+                      } else if (bluetoothState == BluetoothState.STATE_OFF) {
+                        FlutterBluetoothSerial.instance.requestEnable();
+                      }
+                    }),
+                const SizedBox(width: 12),
+                FullWidthPrimaryIconButton(
+                    icon: connectivity == ConnectivityResult.none
+                        ? Icons.signal_wifi_off
+                        : Icons.signal_wifi_4_bar,
+                    label: connectivity == ConnectivityResult.none
+                        ? 'Offline'
+                        : (initiallyOffline ? 'Tap to reload' : 'Online'),
+                    onPressed: () => Navigator.of(context)
+                        .pushNamedAndRemoveUntil(
+                            InitialScreen.routeName, (route) => false))
+              ]),
+              const SizedBox(height: 10),
+              Row(
+                children: <Widget>[
+                  FullWidthPrimaryIconButton(
+                    icon: cachedSongs.allDownloaded
+                        ? CupertinoIcons.checkmark_alt_circle_fill
+                        : CupertinoIcons.cloud_download_fill,
+                    label: cachedSongs.hasFinishedLoading
+                        ? (cachedSongs.allDownloaded
+                            ? 'All songs available offline'
+                            : 'Download All'
+                                '${cachedSongs.isDownloading ? " (" + cachedSongs.numDownloaded.toString() + " / " + cachedSongs.songs.length.toString() + ")" : ""}')
+                        : 'Loading...',
+                    onPressed: cachedSongs.requestDownload,
+                  ),
+                ],
+              ),
             ])),
         HorizontalCardScroller(
           headingText: 'Top albums',
