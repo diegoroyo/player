@@ -171,7 +171,9 @@ class _SearchScreenState extends State<SearchScreen> {
                           cards: _artists
                               .map((artist) => ArtistCard(artist: artist)),
                         ),
-                      const BottomSpace(),
+                      const BottomSpace(
+                        asSliver: false,
+                      ),
                     ],
                   ),
                 ),

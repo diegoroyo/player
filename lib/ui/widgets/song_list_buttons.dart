@@ -2,6 +2,8 @@ import 'package:app/constants/dimensions.dart';
 import 'package:app/models/song.dart';
 import 'package:app/providers/audio_provider.dart';
 import 'package:app/providers/cache_provider.dart';
+import 'package:app/router.dart';
+import 'package:app/ui/screens/queue.dart';
 import 'package:app/ui/widgets/full_width_primary_icon_button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -69,12 +71,15 @@ class _SongListButtonsState extends State<SongListButtons> {
               ),
               const SizedBox(width: 12),
               FullWidthPrimaryIconButton(
-                key: SongListButtons.shuffleAllButtonKey,
-                icon: CupertinoIcons.shuffle,
-                label: 'Shuffle All',
-                onPressed: () async =>
-                    await audio.replaceQueue(widget.songs, shuffle: true),
-              ),
+                  key: SongListButtons.shuffleAllButtonKey,
+                  icon: CupertinoIcons.shuffle,
+                  label: 'Shuffle All',
+                  onPressed: () async {
+                    await audio.replaceQueue(widget.songs, shuffle: true);
+                    Navigator.of(context, rootNavigator: true)
+                        .pushNamed(QueueScreen.routeName);
+                    await AppRouter().openNowPlayingScreen(context);
+                  }),
             ],
           ),
           const SizedBox(height: 10),

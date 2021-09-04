@@ -77,11 +77,18 @@ class HomeScreen extends StatelessWidget {
       ];
     } else {
       homeBlocks = <Widget>[
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.horizontalPadding,
-          ),
-          child: SimpleSongList(songs: songProvider.recentlyAdded()),
+        HorizontalCardScroller(
+          headingText: 'Top albums',
+          cards: <Widget>[
+            ...albumProvider
+                .mostPlayed()
+                .map((album) => AlbumCard(album: album)),
+            PlaceholderCard(
+              icon: CupertinoIcons.music_albums,
+              onPressed: () => Navigator.of(context, rootNavigator: true)
+                  .pushNamed(AlbumsScreen.routeName),
+            ),
+          ],
         ),
         HorizontalCardScroller(
           headingText: 'Most played songs',
@@ -99,24 +106,11 @@ class HomeScreen extends StatelessWidget {
             horizontal: AppDimensions.horizontalPadding,
           ),
           child: SimpleSongList(
-            songs: interactionProvider.getRandomFavorites(limit: 5),
+            songs: interactionProvider.getRandomFavorites(limit: 12),
             headingText: 'From your favorites',
             onHeaderTap: () => Navigator.of(context, rootNavigator: true)
                 .pushNamed(FavoritesScreen.routeName),
           ),
-        ),
-        HorizontalCardScroller(
-          headingText: 'Top albums',
-          cards: <Widget>[
-            ...albumProvider
-                .mostPlayed()
-                .map((album) => AlbumCard(album: album)),
-            PlaceholderCard(
-              icon: CupertinoIcons.music_albums,
-              onPressed: () => Navigator.of(context, rootNavigator: true)
-                  .pushNamed(AlbumsScreen.routeName),
-            ),
-          ],
         ),
         HorizontalCardScroller(
           headingText: 'Top artists',
@@ -136,11 +130,22 @@ class HomeScreen extends StatelessWidget {
             horizontal: AppDimensions.horizontalPadding,
           ),
           child: SimpleSongList(
+              headingText: 'Recently added',
+              songs: songProvider.recentlyAdded()),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.horizontalPadding,
+          ),
+          child: SimpleSongList(
             songs: songProvider.leastPlayed(limit: 5),
             headingText: 'Hidden gems',
           ),
         ),
-        const BottomSpace(height: 128),
+        const BottomSpace(
+          height: 128,
+          asSliver: false,
+        ),
       ]
           .map(
             (widget) => Padding(

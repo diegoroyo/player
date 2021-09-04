@@ -94,7 +94,7 @@ class LibraryScreen extends StatelessWidget {
                 0,
               ),
               sliver: SliverToBoxAdapter(
-                child: const Heading5(text: 'Recently added'),
+                child: const Heading5(text: 'Most played'),
               ),
             ),
             mostPlayedSongs.length == 0

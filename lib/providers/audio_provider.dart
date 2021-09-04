@@ -34,7 +34,9 @@ class AudioProvider with StreamSubscriber, ChangeNotifier {
       // Everytime a new song is played (including those on Single loop mode)
       // we reset its playCountRegistered flag so that the play count is
       // registered properly.
-      _songProvider.byId(_player.songId!).playCountRegistered = false;
+      if (_player.songId != null) {
+        _songProvider.byId(_player.songId!).playCountRegistered = false;
+      }
     }));
 
     subscribe(_player.currentPosition.listen((Duration position) {

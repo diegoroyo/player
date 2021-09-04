@@ -27,7 +27,10 @@ class _ProgressBarState extends State<ProgressBar> with StreamSubscriber {
     super.initState();
     audio = context.read();
 
-    setState(() => _duration = Duration(seconds: widget.song.length.toInt()));
+    setState(() {
+      _duration = Duration(seconds: widget.song.length.toInt());
+      _position = Duration(seconds: 0);
+    });
 
     subscribe(audio.player.currentPosition.listen((position) {
       setState(() => _position = position);
