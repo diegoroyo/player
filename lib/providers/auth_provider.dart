@@ -24,6 +24,8 @@ class AuthProvider {
 
   void setAuthUser(User user) => _authUser = user;
 
+  bool get hasStoredToken => preferences.apiToken != null;
+
   Future<User?> tryGetAuthUser() async {
     if (preferences.apiToken == null) {
       return null;

@@ -3,6 +3,8 @@ import 'package:app/providers/artist_provider.dart';
 import 'package:app/providers/playlist_provider.dart';
 import 'package:app/providers/song_provider.dart';
 import 'package:app/utils/api_request.dart';
+import 'package:app/utils/preferences.dart' as preferences;
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -23,7 +25,24 @@ class DataProvider with ChangeNotifier {
         _playlistProvider = playlistProvider;
 
   Future<void> init(BuildContext context) async {
-    final Map<String, dynamic> data = await get('data');
+    Map<String, dynamic>? data;
+
+    // no internet and stored token -> load data, skip connections
+    String userToken = preferences.apiToken!;
+    var connectivity = await Connectivity().checkConnectivity();
+    if (connectivity == ConnectivityResult.none) {
+      var songData = preferences.readSongData();
+      if (songData != null && songData['userToken'] == userToken) {
+        data = songData['songData'];
+      }
+    }
+
+    if (data == null) {
+      data = await get('data');
+    }
+
+    // store for future use
+    preferences.writeSongData(data!, userToken);
 
     await _artistProvider.init(data['artists']);
     await _albumProvider.init(data['albums']);

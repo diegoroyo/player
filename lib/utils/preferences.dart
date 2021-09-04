@@ -42,3 +42,10 @@ set volume(double volume) => _set('volume', volume);
 double get volume => _get<double>('volume') ?? 0.7;
 
 String get defaultImageUrl => '$hostUrl/images/unknown-album.png';
+
+void writeSongData(Map songData, String userToken) => _set('songData', {
+      'songData': songData,
+      'userToken': userToken,
+    });
+
+Map<String, dynamic>? readSongData() => _get('songData');

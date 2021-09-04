@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/constants/dimensions.dart';
 import 'package:app/models/song.dart';
 import 'package:app/providers/album_provider.dart';
@@ -7,24 +9,66 @@ import 'package:app/providers/song_provider.dart';
 import 'package:app/ui/screens/albums.dart';
 import 'package:app/ui/screens/artists.dart';
 import 'package:app/ui/screens/favorites.dart';
+import 'package:app/ui/screens/initial.dart';
 import 'package:app/ui/screens/main.dart';
 import 'package:app/ui/screens/profile.dart';
 import 'package:app/ui/screens/songs.dart';
 import 'package:app/ui/widgets/album_card.dart';
 import 'package:app/ui/widgets/artist_card.dart';
 import 'package:app/ui/widgets/bottom_space.dart';
+import 'package:app/ui/widgets/full_width_primary_icon_button.dart';
 import 'package:app/ui/widgets/horizontal_card_scroller.dart';
 import 'package:app/ui/widgets/simple_song_list.dart';
 import 'package:app/ui/widgets/song_card.dart';
 import 'package:app/ui/widgets/typography.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   static const routeName = '/home';
 
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool loaded = false;
+  bool initiallyOffline = false;
+  ConnectivityResult? connectivity;
+  late StreamSubscription connectivityStream;
+
+  @override
+  void initState() {
+    super.initState();
+
+    connectivityStream = Connectivity()
+        .onConnectivityChanged
+        .listen((ConnectivityResult result) {
+      if (loaded) {
+        setState(() => connectivity = result);
+      }
+    });
+
+    initConnectivity();
+  }
+
+  @override
+  void dispose() {
+    connectivityStream.cancel();
+    super.dispose();
+  }
+
+  void initConnectivity() async {
+    connectivity = await Connectivity().checkConnectivity();
+    if (connectivity == ConnectivityResult.none) {
+      setState(() => initiallyOffline = true);
+    }
+    loaded = true;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +121,22 @@ class HomeScreen extends StatelessWidget {
       ];
     } else {
       homeBlocks = <Widget>[
+        Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimensions.horizontalPadding,
+            ),
+            child: Row(children: [
+              FullWidthPrimaryIconButton(
+                  icon: connectivity == ConnectivityResult.none
+                      ? Icons.signal_wifi_off
+                      : Icons.signal_wifi_4_bar,
+                  label: connectivity == ConnectivityResult.none
+                      ? 'Offline'
+                      : (initiallyOffline ? 'Tap to reload' : 'Online'),
+                  onPressed: () => Navigator.of(context)
+                      .pushNamedAndRemoveUntil(
+                          InitialScreen.routeName, (route) => false))
+            ])),
         HorizontalCardScroller(
           headingText: 'Top albums',
           cards: <Widget>[
