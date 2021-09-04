@@ -49,6 +49,7 @@ dependencies:
   fake_async: ^1.2.0
   mutex: ^3.0.0
   connectivity_plus: ^1.1.0
+  flutter_bluetooth_serial: ^0.3.2
 
 dev_dependencies:
   flutter_test:

@@ -22,6 +22,7 @@ import 'package:app/ui/widgets/simple_song_list.dart';
 import 'package:app/ui/widgets/song_card.dart';
 import 'package:app/ui/widgets/typography.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -41,9 +42,36 @@ class _HomeScreenState extends State<HomeScreen> {
   ConnectivityResult? connectivity;
   late StreamSubscription connectivityStream;
 
+  BluetoothState bluetoothState = BluetoothState.UNKNOWN;
+
   @override
   void initState() {
     super.initState();
+
+    Future.doWhile(() async {
+      // Wait if adapter not enabled
+      if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
+        return false;
+      }
+      await Future.delayed(Duration(milliseconds: 0xDD));
+      return true;
+    }).then((_) async {
+      FlutterBluetoothSerial.instance
+          .onStateChanged()
+          .listen((BluetoothState state) {
+        setState(() {
+          bluetoothState = state;
+        });
+      });
+
+      bluetoothState = await FlutterBluetoothSerial.instance.isEnabled == true
+          ? BluetoothState.STATE_ON
+          : BluetoothState.STATE_OFF;
+
+      if (await FlutterBluetoothSerial.instance.isEnabled != true) {
+        FlutterBluetoothSerial.instance.requestEnable();
+      }
+    });
 
     connectivityStream = Connectivity()
         .onConnectivityChanged
@@ -126,6 +154,21 @@ class _HomeScreenState extends State<HomeScreen> {
               horizontal: AppDimensions.horizontalPadding,
             ),
             child: Row(children: [
+              FullWidthPrimaryIconButton(
+                  icon: bluetoothState == BluetoothState.STATE_ON
+                      ? Icons.bluetooth
+                      : Icons.bluetooth_disabled,
+                  label: bluetoothState == BluetoothState.STATE_ON
+                      ? 'Bluetooth ON'
+                      : 'Bluetooth OFF',
+                  onPressed: () {
+                    if (bluetoothState == BluetoothState.STATE_ON) {
+                      FlutterBluetoothSerial.instance.requestDisable();
+                    } else if (bluetoothState == BluetoothState.STATE_OFF) {
+                      FlutterBluetoothSerial.instance.requestEnable();
+                    }
+                  }),
+              const SizedBox(width: 12),
               FullWidthPrimaryIconButton(
                   icon: connectivity == ConnectivityResult.none
                       ? Icons.signal_wifi_off
