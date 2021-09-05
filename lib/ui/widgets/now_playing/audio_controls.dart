@@ -8,6 +8,9 @@ import 'package:provider/provider.dart';
 class AudioControls extends StatelessWidget {
   const AudioControls({Key? key}) : super(key: key);
 
+  static const FORWARD_SECONDS = 30;
+  static const REPLAY_SECONDS = 10;
+
   @override
   Widget build(BuildContext context) {
     AudioProvider audio = context.watch();
@@ -15,6 +18,19 @@ class AudioControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: <Widget>[
+        IconButton(
+          onPressed: () {
+            audio.player.currentPosition.valueWrapper!.value.inSeconds >
+                    REPLAY_SECONDS + 1
+                ? audio.player.seek(
+                    audio.player.currentPosition.valueWrapper!.value -
+                        Duration(seconds: REPLAY_SECONDS),
+                    force: true)
+                : audio.player.restart();
+          },
+          icon: const Icon(Icons.replay_10),
+          iconSize: 42,
+        ),
         IconButton(
           onPressed: () {
             audio.player.currentPosition.valueWrapper!.value.inSeconds > 5
@@ -42,6 +58,21 @@ class AudioControls extends StatelessWidget {
           onPressed: () => audio.player.next(),
           icon: const Icon(CupertinoIcons.forward_fill),
           iconSize: 48,
+        ),
+        IconButton(
+          onPressed: () {
+            (audio.player.realtimePlayingInfos.valueWrapper!.value.duration -
+                            audio.player.currentPosition.valueWrapper!.value)
+                        .inSeconds >
+                    FORWARD_SECONDS + 1
+                ? audio.player.seek(
+                    audio.player.currentPosition.valueWrapper!.value +
+                        Duration(seconds: FORWARD_SECONDS),
+                    force: true)
+                : audio.player.next();
+          },
+          icon: const Icon(Icons.forward_30),
+          iconSize: 42,
         ),
       ],
     );
